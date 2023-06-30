@@ -13,7 +13,7 @@
         </div>
         <div class="col-12 p-0 text-center">
 
-            <p class="m-0 py-2">&copy; Ваши лестницы 2023</p>
+            <p class="m-0 py-2">&copy; Каталог товаров / Склад 2023</p>
 
         </div>
     </div>

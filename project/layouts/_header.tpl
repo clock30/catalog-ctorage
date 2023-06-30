@@ -48,7 +48,7 @@
     <div id="intro" class="row view justify-content-center">
         <div class="col-12 col-md-4">
             <a class="d-block logo"  href="/">
-                <span class="logo-top">Ваши лестницы...</span><br/><span class="logo-bottom">ЛЕСТНИЦЫ</span>
+                <span class="logo-top">Каталог товаров</span><br/><span class="logo-bottom">СКЛАД</span>
             </a>
         </div>
         <div class="col-12 col-md-4">
@@ -62,7 +62,7 @@
                     <a class="social" href="#"><img class="social" src="/img/instagram.png"/></a>
                 </div>
                 <div class="col-12 mt-2 p-0">
-                    <p class="phone ml-1">МТС: +375 44 753 95 12</p>
+                    <p class="phone ml-1">МТС: +375 44 444 444 444</p>
                 </div>
 
             </div>
