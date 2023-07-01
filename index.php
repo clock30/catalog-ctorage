@@ -275,6 +275,27 @@ if(preg_match('#^/sales/edit-retail\?id=[0-9]+$#',$url,$matches)){
     echo $layout;
 }
 
+if(preg_match('#^/sales/refund$#',$url,$matches)){
+    $refund = new Sales;
+    $layout = file_get_contents('project/layouts/refund.tpl');
+    $layout = str_replace('{{header}}',$refund->header(),$layout);
+    $layout = str_replace('{{footer}}',$refund->footer(),$layout);
+    $layout = str_replace('{{editRetailSelectForm}}',$refund->editRetailSelectForm(),$layout);
+    $layout = str_replace('{{refundForm}}',$refund->refundForm(),$layout);
+    $refund->goRefundForm();
+    echo $layout;
+}
+
+if(preg_match('#^/sales/refund\?id=[0-9]+$#',$url,$matches)){
+    $refund_form = new Sales;
+    $layout = file_get_contents('project/layouts/refund.tpl');
+    $layout = str_replace('{{header}}',$refund_form->header(),$layout);
+    $layout = str_replace('{{footer}}',$refund_form->footer(),$layout);
+    $layout = str_replace('{{editRetailSelectForm}}',$refund_form->editRetailSelectForm(),$layout);
+    $layout = str_replace('{{refundForm}}',$refund_form->refundForm(),$layout);
+    echo $layout;
+}
+
 if(preg_match('#^/partners$#',$url,$matches)){
     $partners = new Partners;
     $layout = file_get_contents('project/layouts/partners.tpl');

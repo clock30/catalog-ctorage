@@ -51,10 +51,17 @@ class Sales extends Page
     public function editRetailSelectForm(){
         $result = "";
         if(!isset($_GET['id'])){
-            $result .= "<form class='mx-4' method='POST' action=''><p class='mx-0'>Выбор товара для проведения операции РОЗНИЦА КОРРЕКТИРОВКА/УДАЛЕНИЕ. Поля, отмеченные звёздочками, обязательны для заполнения</p><br>
+            $result .= "<form class='mx-4' method='POST' action=''>";
+            if($_SERVER['REQUEST_URI']=='/sales/edit-retail'){
+                $result .= "<p class='mx-0'>Выбор товара для проведения операции РОЗНИЦА КОРРЕКТИРОВКА/УДАЛЕНИЕ. Поля, отмеченные звёздочками, обязательны для заполнения</p><br>";
+            }
+            if($_SERVER['REQUEST_URI']=='/sales/refund'){
+                $result .= "<p class='mx-0'>Выбор товара для проведения операции РОЗНИЦА ВОЗВРАТ. Поля, отмеченные звёздочками, обязательны для заполнения</p><br>";
+            }
+            $result .= "
                    <label>Введите дату продажи*:</label>&nbsp;<input type='date' name='retail_date_value' value='".$this->echoRetailDate('')."'>&nbsp;&nbsp;&nbsp;
                    <input type='submit' name='retail_date_submit' value='ОК'>".$this->checkRetailDate();
-            if(isset($_POST['retail_date_submit'])||isset($_POST['show_on_cathegory_edit_retail_good_list'])||isset($_POST['show_on_good_edit_retail_good_list'])||isset($_POST['edit_retail_selected_good_form'])||isset($_POST['show_retail_selected_good_on_date'])){
+            if(isset($_POST['retail_date_submit'])||isset($_POST['show_on_cathegory_edit_retail_good_list'])||isset($_POST['show_on_good_edit_retail_good_list'])||isset($_POST['edit_retail_selected_good_form'])||isset($_POST['show_retail_selected_good_on_date'])||isset($_POST['go_edit_retail_form'])||isset($_POST['go_refund_form'])){
                 if(isset($_POST['retail_date_value'])&&$_POST['retail_date_value']!='') {
                     $result .= "<p class='mx-0'>Выберите товар, продажу которого необходимо скорректировать</p>
                         <div class='row'>
@@ -72,6 +79,16 @@ class Sales extends Page
                                 ".$this->showOnGoodEditRetailGoodList()."
                             </div>
                         </div>";
+                    if(isset($_POST['go_edit_retail_form'])){
+                        if(!isset($_POST['sale'])){
+                            $result .= "<p class='mx-0' style='color:#680425;'>Вы не выбрали продажу для корректировки/удаления</p>";
+                        }
+                    }
+                    if(isset($_POST['go_refund_form'])){
+                        if(!isset($_POST['sale'])){
+                            $result .= "<p class='mx-0' style='color:#680425;'>Вы не выбрали продажу для для оформления возврата</p>";
+                        }
+                    }
                 }
                 else $result .= "<p class='mx-0'>Введите дату продажи</p>";
             }
@@ -209,17 +226,35 @@ class Sales extends Page
                     foreach($arr_retails as $item){
                         $result .= "<label><input type='radio' name='sale' value='$item[retail_id]'>&nbsp;Время: <b>".date('H:i:s',strtotime($item['date']))."</b>; Цена: <b>$item[price]</b>; Кол-во: <b>$item[number]</b></label><br>";
                     }
-                    $result .= "<br><input type='submit' name='go_edit_retail_form' value='Редактировать выбранную продажу'>";
+                    if($_SERVER['REQUEST_URI']=='/sales/edit-retail'){
+                        $result .= "<br><input type='submit' name='go_edit_retail_form' value='Редактировать выбранную продажу'>";
+                    }
+                    if($_SERVER['REQUEST_URI']=='/sales/refund'){
+                        $result .= "<br><input type='submit' name='go_refund_form' value='Оформить возврат на основе выбранной продажи'>";
+                    }
                 }
             }
-            else $result .= "<p class='mx-0'>Выберите товар для редактирования розничной продажи</pcla>";
+            else $result .= "<p class='mx-0' style='color: #680425;'>Вы не выбрали товар для редактирования розничной продажи</pcla>";
         }
         return $result;
     }
 
     public function goEditRetailForm(){
-        if(isset($_POST['sale'])){
-            header("Location: /sales/edit-retail?id=$_POST[sale]");
+        if(isset($_POST['go_edit_retail_form'])){
+            if(isset($_POST['sale'])){
+                header("Location: /sales/edit-retail?id=$_POST[sale]");
+            }
+            else return "";
+        }
+        else return "";
+    }
+
+    public function goRefundForm(){
+        if(isset($_POST['go_refund_form'])){
+            if(isset($_POST['sale'])){
+                header("Location: /sales/refund?id=$_POST[sale]");
+            }
+            else return "";
         }
         else return "";
     }
@@ -238,6 +273,23 @@ class Sales extends Page
                             <td style='width: 5%;'><input style='width: 100%;' type='text' name='good_retail_number' value='$edit_retail[number]'></td><td style='width: 19%; text-align: center;'><input type='hidden' name='old_date' value='$edit_retail[date]'><input type='date' name='retail_date' value='$date'></td><td style='width: 12%; text-align: center;'><input type='submit' name='edit_retail' value='Изменить'></td>
                             <td style='width: 12%; text-align: center;'>&nbsp;<input type='submit' name='delete_retail' value='Удалить'>&nbsp;</td></tr></table><br>".$this->editRetail().$this->deleteRetail()."
                             </form>";
+        }
+        return $result;
+    }
+
+    public function refundForm(){
+        $result = "";
+        if(isset($_GET['id'])){
+            require 'project/config/connection.php';
+            $query = "SELECT retail.id as retail_id, retail.good_id, retail.price, retail.number, retail.date, catalog.id as catalog_id, catalog.good_name FROM retail LEFT JOIN catalog ON retail.good_id=catalog.id WHERE retail.id='$_GET[id]'";
+            $obj_refund = mysqli_query($link,$query) or die(mysqli_error($link));
+            $refund = mysqli_fetch_assoc($obj_refund);
+            $date = date('Y-m-d H:i:s',time());
+            $result .= "<form method='POST' action='' class='mx-4'><p class='mx-0'>Оформление возврата товара <b>$refund[good_name]</b> / <b><a style='color: #680425;' href='/sales/refund'>Отмена</a></b></p><table><tr><td style='text-align: center; width: 40%;'>Наименование товара</td>
+                                <td style='text-align: center; width: 12%;'>Цена</td><td style='text-align: center; width: 5%;'>Кол-во</td><td style='text-align: center; width: 19%;'>Дата</td><td colspan='2' style='text-align: center; width: 24%;'>Действие</td></tr>";
+            $result .= "<tr><td style='width: 40%;'><input type='hidden' name='refund_good_id' value='$refund[catalog_id]'>&nbsp;$refund[good_name]&nbsp;</td><td style='width: 12%;'><input type='hidden' name='good_refund_price' value='$refund[price]'>&nbsp;$refund[price]&nbsp;</td>
+                            <td style='width: 5%;'><input style='width: 100%;' type='text' name='good_refund_number' value='$refund[number]'></td><td style='width: 19%; text-align: center;'><input type='hidden' name='current_time' value='$date'><input type='date' name='refund_date' value='".date('Y-m-d',time())."'></td><td style='width: 24%; text-align: center;'><input type='submit' name='refund' value='Оформить возврат'></td>
+                            </tr></table><br>".$this->refund()."</form>";
         }
         return $result;
     }
@@ -275,6 +327,28 @@ class Sales extends Page
                 header("Location: /sales");
             }
             else return "<p style='color: #680425;' class='mx-0'>Заполните поля ЦЕНА и КОЛИЧЕСТВО</p>";
+        }
+        else return "";
+    }
+
+    public function refund(){
+        if(isset($_POST['refund'])){
+            if($_POST['good_refund_number']!=''&&$_POST['good_refund_number']>0){
+                require 'project/config/connection.php';
+                if(!isset($_POST['refund_date'])||strtotime($_POST['refund_date'])==0){
+                    $date = $_POST['current_time'];
+                }
+                else{
+                    if(date('Y-m-d',strtotime($_POST['current_time']))==$_POST['refund_date']){
+                        $date = $_POST['current_time'];
+                    }
+                    else $date = $_POST['refund_date'];
+                }
+                $query = "INSERT INTO refund SET good_id='$_POST[refund_good_id]', price='$_POST[good_refund_price]', number='$_POST[good_refund_number]', date='$date'";
+                mysqli_query($link,$query) or die(mysqli_error($link));
+                header('Location: /sales');
+            }
+            else return "<p class='mx-0' style='color: #680425;'>Введите количество товара для возврата, оно должно быть больше нуля</p>";
         }
         else return "";
     }

@@ -34,18 +34,12 @@
 <div class="container ">
     <div class="row p-0">
         <div class="col-12 p-0 way">
-            <p class="way ml-4 p-0 my-2"><a href="/">Главная</a> /  <span>Продажи</span></p>
+            <p class="way ml-4 p-0 my-2"><a href="/">Главная</a> /  <a href="/sales">Продажи</a> / <span>Розница возврат</span></p>
         </div>
         <div class="col-12 p-0 goods_type delivery">
-            <h2 class="ml-4 mb-0">Продажи</h2>
-            <br>
-            <ul class="mx-4 admin_actions_list">
-                <li><a href="/sales/retail">Розничная продажа</a></li>
-                <li><a href="/sales/edit-retail">Розница корректировка/удаление</a></li>
-                <li><a href="/sales/refund">Розница возврат</a></li>
-                <li><a href="/sales/wholesale">Оптовая продажа</a></li>
-                <li><a href="/sales/edit-wholesale">Опт корректировка/удаление</a></li>
-            </ul>
+            <h2 class="ml-4 mb-0">Розница возврат</h2>
+            {{editRetailSelectForm}}
+            {{refundForm}}
             <br><br>
         </div>
     </div>
