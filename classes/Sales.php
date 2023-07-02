@@ -8,13 +8,13 @@ class Sales extends Page
         if(isset($_POST['sale_selected_good_form'])){
             if(isset($_POST['good_to_delete'])){
                 require 'project/config/connection.php';
-                $query = "SELECT id, good_name, price, cathegory FROM catalog WHERE id='$_POST[good_to_delete]'";
+                $query = "SELECT id, good_name, price FROM catalog WHERE id='$_POST[good_to_delete]'";
                 $obj_good = mysqli_query($link,$query) or die(mysqli_error($link));
                 $good=mysqli_fetch_assoc($obj_good);
                 if(!empty($good)){
                     $result .= "<p class='mx-0'>Оформить продажу товара:</p><table><tr><td style='text-align: center; width: 40%;'>Наименование товара</td>
                                 <td style='text-align: center; width: 12%;'>Цена</td><td style='text-align: center; width: 5%;'>Кол-во</td><td style='text-align: center; width: 19%;'>Дата</td><td colspan='2' style='text-align: center; width: 24%;'>Действие</td></tr>";
-                    $result .= "<tr><td style='width: 40%;'>&nbsp;$good[good_name]<input type='hidden' name='retail_good_id' value='$_POST[good_to_delete]'><input type='hidden' name='retail_good_cathegory' value='$good[cathegory]'>&nbsp;</td><td style='width: 12%;'><input style='width: 100%;' type='text' name='good_retail_price' value='".(floor($good['price']*$this->course())+0.99)."'></td>
+                    $result .= "<tr><td style='width: 40%;'>&nbsp;$good[good_name]<input type='hidden' name='retail_good_id' value='$_POST[good_to_delete]'>&nbsp;</td><td style='width: 12%;'><input style='width: 100%;' type='text' name='good_retail_price' value='".(floor($good['price']*$this->course())+0.99)."'></td>
                             <td style='width: 5%;'><input style='width: 100%;' type='text' name='good_retail_number' value='1'></td><td style='width: 19%; text-align: center;'><input type='date' name='retail_date' value='".date('Y-m-d',time())."'></td><td style='width: 12%; text-align: center;'><input type='submit' name='retail_good' value='Продажа'></td>
                             <td style='width: 12%; text-align: center;'>&nbsp;<a style='color: black;' href='/sales/retail'>Отмена</a>&nbsp;</td></tr></table>";
                     return $result;
@@ -36,7 +36,7 @@ class Sales extends Page
                 }
                 else $date = date('Y-m-d H:i:s',strtotime($_POST['retail_date']));
                 require 'project/config/connection.php';
-                $query = "INSERT INTO retail SET good_id='$_POST[retail_good_id]', good_cathegory='$_POST[retail_good_cathegory]', number='$_POST[good_retail_number]', price='$_POST[good_retail_price]', date='$date'";
+                $query = "INSERT INTO retail SET good_id='$_POST[retail_good_id]', number='$_POST[good_retail_number]', price='$_POST[good_retail_price]', date='$date'";
                 mysqli_query($link, $query) or die(mysqli_error($link));
                 header("Location: /sales");
             }
@@ -102,28 +102,29 @@ class Sales extends Page
         require 'project/config/connection.php';
         $time_from = $_POST['retail_date_value'];
         $time_to = date('Y-m-d H:i:s',strtotime($_POST['retail_date_value'])+(3600*24));
-        $query = "SELECT good_id, good_cathegory FROM retail WHERE date>='$time_from' AND date<'$time_to' ORDER BY good_id ASC";
+        $query = "SELECT retail.good_id, retail.date, catalog.id as catalog_id, catalog.cathegory, cathegories.id as cathegories_id, cathegories.cathegory_name FROM retail LEFT JOIN catalog ON retail.good_id=catalog.id 
+                    LEFT JOIN cathegories ON catalog.cathegory=cathegories.id WHERE retail.date>='$time_from' AND retail.date<'$time_to' ORDER BY retail.good_id ASC";
         $obj_good = mysqli_query($link,$query) or die(mysqli_error($link));
         for($arr_good=[];$row=mysqli_fetch_assoc($obj_good);$arr_good[]=$row);
         $result = "<select name='select_edit_retail_cathegory_list'><option value=''>Выберите категорию...</option>";
         if(!empty($arr_good)){
+            $arr_cathegories = [];
+            $arr_cathegories_name = [];
             foreach($arr_good as $item){
-                $all_good_caths_array[] = $item['good_cathegory'];
+                if(!in_array($item['cathegories_id'],$arr_cathegories)){
+                    $arr_cathegories[] = $item['cathegories_id'];
+                    $arr_cathegories_name[] = $item['cathegory_name'];
+                }
             }
-            $good_caths_array = array_unique($all_good_caths_array);//Массив id категорий товаров, проданных за дату $_POST['retail_date_value']
-            $query = "SELECT id, cathegory_name FROM cathegories WHERE id IN (".implode(',',$good_caths_array).")";
-            $obj_caths = mysqli_query($link,$query) or die(mysqli_error($link));
-            for($arr_caths=[];$row=mysqli_fetch_assoc($obj_caths);$arr_caths[]=$row);
-
-            foreach($arr_caths as $item){
+            for($i=0;$i<count($arr_cathegories);$i++){
                 if(isset($_POST['select_edit_retail_cathegory_list'])){
-                    if($_POST['select_edit_retail_cathegory_list']==$item['id']){
+                    if($_POST['select_edit_retail_cathegory_list']==$arr_cathegories[$i]){
                         $selected = ' selected';
                     }
                     else $selected = '';
                 }
                 else $selected = '';
-                $result .= "<option value='$item[id]'$selected>$item[cathegory_name]</option>";
+                $result .= "<option value='$arr_cathegories[$i]'$selected>$arr_cathegories_name[$i]</option>";
             }
         }
         $result .= "</select>";
@@ -135,7 +136,7 @@ class Sales extends Page
             require 'project/config/connection.php';
             $time_from = $_POST['retail_date_value'];
             $time_to = date('Y-m-d H:i:s',strtotime($_POST['retail_date_value'])+(3600*24));
-            $query = "SELECT good_id, good_cathegory FROM retail WHERE date>='$time_from' AND date<'$time_to' ORDER BY good_id ASC";
+            $query = "SELECT good_id FROM retail WHERE date>='$time_from' AND date<'$time_to' ORDER BY good_id ASC";
             $obj_good = mysqli_query($link,$query) or die(mysqli_error($link));
             for($arr_good=[];$row=mysqli_fetch_assoc($obj_good);$arr_good[]=$row);
             if(strtotime($_POST['retail_date_value'])!=0&&empty($arr_good)){
@@ -353,10 +354,131 @@ class Sales extends Page
         else return "";
     }
 
+    public function selectEditRefundForm(){
+        $result = "<form class='mx-4' method='POST' action=''><p class='mx-0'>Выбор товара для проведения операции РОЗНИЦА ВОЗВРАТ - КОРРЕКТИРОВКА/УДАЛЕНИЕ. Поля, отмеченные звёздочками, обязательны для заполнения</p><br>";
+        $result .= "<label>Введите дату возврата*:</label>&nbsp;<input type='date' name='retail_date_value' value='".$this->echoRetailDate('')."'>&nbsp;&nbsp;&nbsp;
+                   <input type='submit' name='refund_date_submit' value='ОК'>".$this->checkRefundDate();
+        if(isset($_POST['refund_date_submit'])||isset($_POST['edit_refund_list'])||isset($_POST['edit_refund'])||isset($_POST['delete_refund'])) {
+            if (isset($_POST['retail_date_value']) && $_POST['retail_date_value'] != '') {
+                require 'project/config/connection.php';
+                $time_from = date('Y-m-d H:i:s',strtotime($_POST['retail_date_value']));
+                $time_to = date('Y-m-d H:i:s',strtotime($time_from)+(3600*24));
+                $query = "SELECT refund.id as refund_id, refund.good_id, refund.number, refund.price, refund.date, catalog.id as catalog_id, catalog.good_name FROM refund LEFT JOIN catalog ON refund.good_id=catalog.id 
+                            WHERE refund.date>='$time_from' AND refund.date<'$time_to' ORDER BY refund.date ASC";
+                $obj_refund = mysqli_query($link,$query) or die(mysqli_error($link));
+                for($arr_refund=[];$row=mysqli_fetch_assoc($obj_refund);$arr_refund[]=$row);
+                if(!empty($arr_refund)){
+                    $date = date('d.m.Y',strtotime($_POST['retail_date_value']));
+                    $result .= "<br><br><p class='mx-0'>Выберите один из возвратов за <b>$date</b> г., который необходимо скорректировать*:</p>";
+                    foreach($arr_refund as $item){
+                        $checked = "";
+                        if (isset($_POST['edit_refund_list'])){
+                            if($_POST['edit_refund_list']==$item['refund_id']){
+                                $checked .= " checked";
+                            }
+                        }
+                        $result .= "<label><input type='radio' name='edit_refund_list' value='$item[refund_id]'$checked>&nbsp;<b>$item[good_name]</b>, цена: <b>$item[price]</b>, кол-во: <b>$item[number]</b></label><br>";
+                    }
+                    $result .= "<br><input type='submit' name='go_edit_refund_form' value='Выбрать'>";
+                }
+            }
+            else $result .= "<p class='mx-0' style='color: #680425;'>Введите дату продажи</p>";
+            $result .= $this->editRefundForm() . "</form>";
+        }
+        return $result;
+    }
+
+    public function checkRefundDate(){
+        if(isset($_POST['refund_date_submit'])){
+            if($_POST['retail_date_value']!=''&&strtotime($_POST['retail_date_value'])!=0){
+                require 'project/config/connection.php';
+                $time_from = date('Y-m-d H:i:s',strtotime($_POST['retail_date_value']));
+                $time_to = date('Y-m-d H:i:s',strtotime($time_from)+(3600*24));
+                $query = "SELECT id FROM refund WHERE date>='$time_from' AND date<'$time_to' ORDER BY date ASC";
+                $obj_refund = mysqli_query($link,$query) or die(mysqli_error($link));
+                for($arr_refund=[];$row=mysqli_fetch_assoc($obj_refund);$arr_refund[]=$row);
+                if(empty($arr_refund)){
+                    $date = date('d.m.Y', strtotime($_POST['retail_date_value']));
+                    return "<p class='mx-0' style='color: #680425;'>Ошибка. Возвратов за $date г. не было. Введите другую дату</p>";
+                }
+                else return "";
+            }
+            else return "<p style='color: #680425;' class='mx-0'>Введите дату возврата</p>";
+        }
+        else return "";
+    }
+
+    public function editRefundForm(){
+        $result = "";
+        if(isset($_POST['go_edit_refund_form'])||isset($_POST['edit_refund'])||isset($_POST['delete_refund'])){
+            if(isset($_POST['edit_refund_list'])){
+                require 'project/config/connection.php';
+                $query = "SELECT refund.id as refund_id, refund.date, refund.price, refund.number, refund.good_id, catalog.id as catalog_id, catalog.good_name FROM refund LEFT JOIN catalog on refund.good_id=catalog.id WHERE refund.id='$_POST[edit_refund_list]'";
+                $obj_refund = mysqli_query($link,$query) or die(mysqli_error($link));
+                $refund = mysqli_fetch_assoc($obj_refund);
+
+                $date = date('Y-m-d',strtotime($refund['date']));
+                $result .= "<br><br><p class='mx-0'>Корректировка возврата товара <b>$refund[good_name]<input type='hidden' name='refund_id' value='$refund[refund_id]'></b> от <b>".date('d.m.Y',strtotime($refund['date']))."</b> г. Кол-во: <b>$refund[number]</b></p><table style='width: 100%;'><tr style='width: 100%;'><td style='text-align: center; width: 45%;'>Наименование товара</td><td style='text-align: center; width: 12%;'>Дата возврата</td><td style='text-align: center; width: 10%;'>Цена</td><td style='text-align: center; width: 5%;'>Кол-во</td><td colspan='2' style='text-align: center; width: 28%;'>Действие</td></tr>
+                            <tr><td style='width: 45%;'>&nbsp;$refund[good_name]&nbsp;</td><td style='width: 12%;'><input type='hidden' name='hidden_refund_date' value='$refund[date]'><input type='date' name='refund_date' value='$date'></td>
+                            <td style='width: 10%;'><input type='hidden' name='hidden_refund_price' value='$refund[price]'>&nbsp;$refund[price]&nbsp;</td><td style='width: 5%;'><input style='width: 100%;' type='text' name='refund_number' value='$refund[number]'></td>
+                            <td style='width: 14%; text-align: center;'><input type='submit' name='edit_refund' value='Изменить'></td><td style='width: 14%; text-align: center;'><input type='submit' name='delete_refund' value='Удалить'></td></tr></table>".$this->editRefund().$this->deleteRefund();
+            }
+            else $result .= "<p class='mx-0' style='color: #680425;'>Вы не выбрали ни одного из предложенных вариантов возврата. Попробуйте снова</p>";
+        }
+        return $result;
+    }
+
+    /*public function editRefundGoodList($var){
+        require 'project/config/connection.php';
+        $query = "SELECT id, good_name FROM catalog ORDER BY good_name ASC";
+        $obj_good = mysqli_query($link,$query) or die(mysqli_error($link));
+        for($arr_good=[];$row=mysqli_fetch_assoc($obj_good);$arr_good[]=$row);
+        $good_list = "<select style='width: 100%;' name='edit_refund_good'>";
+        foreach($arr_good as $item){
+            $selected = "";
+            if($item['id']==$var){
+                $selected .= " selected";
+            }
+            $good_list .= "<option value='$item[id]'$selected>$item[good_name]</option>";
+        }
+        $good_list .= "<select>";
+        return $good_list;
+    }*/
+
     public function deleteRetail(){
         if(isset($_POST['delete_retail'])&&$_POST['delete_retail']=='Удалить'){
             require 'project/config/connection.php';
             $query = "DELETE FROM retail WHERE id='$_GET[id]'";
+            mysqli_query($link,$query) or die(mysqli_error($link));
+            header("Location: /sales");
+        }
+        else return "";
+    }
+
+    public function editRefund(){
+        if(isset($_POST['edit_refund'])){
+            if($_POST['refund_number']!=''&&$_POST['refund_number']>0){
+                if($_POST['refund_date']!=''&&strtotime($_POST['refund_date'])!=0){
+                    require 'project/config/connection.php';
+                    if(date('Y-m-d',strtotime($_POST['hidden_refund_date']))==$_POST['refund_date']){
+                        $date = $_POST['hidden_refund_date'];
+                    }
+                    else $date = $_POST['refund_date'];
+                    $query = "UPDATE refund SET number='$_POST[refund_number]', date='$date' WHERE id='$_POST[refund_id]'";
+                    mysqli_query($link,$query) or die(mysqli_error($link));
+                    header("Location: /sales");
+                }
+                else return "<p class='mx-0' style='color: #680425;'>Введите дату возврата</p>";
+            }
+            else return "<p class='mx-0' style='color: #680425;'>Введите количество товара для возврата, его значение должно быть больше нуля</p>";
+        }
+        else return "";
+    }
+
+    public function deleteRefund(){
+        if(isset($_POST['delete_refund'])){
+            require 'project/config/connection.php';
+            $query = "DELETE FROM refund WHERE id='$_POST[refund_id]'";
             mysqli_query($link,$query) or die(mysqli_error($link));
             header("Location: /sales");
         }

@@ -296,6 +296,17 @@ if(preg_match('#^/sales/refund\?id=[0-9]+$#',$url,$matches)){
     echo $layout;
 }
 
+if(preg_match('#^/sales/edit-refund$#',$url,$matches)){
+    $edit_refund = new Sales;
+    $layout = file_get_contents('project/layouts/edit_refund.tpl');
+    $layout = str_replace('{{header}}',$edit_refund->header(),$layout);
+    $layout = str_replace('{{footer}}',$edit_refund->footer(),$layout);
+    $layout = str_replace('{{selectEditRefundForm}}',$edit_refund->selectEditRefundForm(),$layout);
+    //$layout = str_replace('{{editRefundForm}}',$edit_refund->editRefundForm(),$layout);
+    //$refund->goRefundForm();
+    echo $layout;
+}
+
 if(preg_match('#^/partners$#',$url,$matches)){
     $partners = new Partners;
     $layout = file_get_contents('project/layouts/partners.tpl');
