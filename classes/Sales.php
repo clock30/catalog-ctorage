@@ -1,6 +1,6 @@
 <?php
 namespace classes;
-class Sales extends Page
+class Sales extends Storage
 {
     public function retailForm(){
         $result = "";
@@ -490,5 +490,117 @@ class Sales extends Page
             return $_POST['retail_date_value'];
         }
         else return $var;
+    }
+
+    public  function addOutcomingInvoices(){
+        if(isset($_POST['add_outcoming_invoices'])){
+            $message = "";
+            if($_POST['doc_number']!=''&&$_POST['doc_date']!=''&&$_POST['find_supplier']!=''&&$_POST['sale_basis']!=''&&$_POST['loading_point']!=''&&$_POST['unloading_point']!=''
+                &&$_POST['passed']!=''&&$_POST['accepted']!=''){
+                if(isset($_POST['partner'])&&$_POST['partner']!=''){
+                    require 'project/config/connection.php';
+                    $query = "INSERT INTO outcoming_invoices SET 
+                            doc_number='$_POST[doc_number]',
+                               doc_date='$_POST[doc_date]',
+                               partner='$_POST[partner]',
+                               car='$_POST[car]',
+                               trailer='$_POST[trailer]',
+                               waybill='$_POST[waybill]',
+                               driver='$_POST[driver]',
+                               transportation_customer='$_POST[transportation_customer]',
+                               sale_basis='$_POST[sale_basis]',
+                               loading_point='$_POST[loading_point]',
+                               unloading_point='$_POST[unloading_point]',
+                               readdressing='$_POST[readdressing]',
+                               cargo_weight='$_POST[cargo_weight]',
+                               cargo_spaces_number='$_POST[cargo_spaces_number]',
+                               sale_allowed='$_POST[sale_allowed]',
+                               passed='$_POST[passed]',
+                               passed_seal_number='$_POST[passed_seal_number]',
+                               accepted_to_transport='$_POST[accepted_to_transport]',
+                               attorney_number='$_POST[attorney_number]',
+                               attorney_date='$_POST[attorney_date]',
+                               attorney_organization='$_POST[attorney_organization]',
+                               accepted='$_POST[accepted]',
+                               accepted_seal_number='$_POST[accepted_seal_number]'";
+                    mysqli_query($link,$query) or die(mysqli_error($link));
+                    $last_id = mysqli_insert_id($link);
+                    header("Location: /sales/wholesale?id=$last_id");
+                }
+                else $message = "<p>Выполните поиск покупателя и выберите его</p>";
+            }
+            else $message = "<p>Заполните все поля, отмеченные звёздочками</p>";
+            echo $message;
+        }
+        else return "";
+    }
+
+    public function wholesaleForm(){
+        if(isset($_GET['id'])){
+            require 'project/config/connection.php';
+            $query="SELECT doc_number, doc_date FROM outcoming_invoices WHERE id='$_GET[id]'";
+            $obj_ttn = mysqli_query($link,$query) or die(mysqli_error($link));
+            $ttn = mysqli_fetch_assoc($obj_ttn);
+            $date = date('d.m.Y',strtotime($ttn['doc_date']));
+            $query = "SELECT partners.partner_name FROM partners LEFT JOIN outcoming_invoices ON partners.id=outcoming_invoices.partner WHERE outcoming_invoices.id='$_GET[id]'";
+            $obj_partner = mysqli_query($link,$query) or die(mysqli_error($link));
+            $arr_partner = mysqli_fetch_assoc($obj_partner);
+            $result = "<p>Заполнение товара по ТТН № <b>$ttn[doc_number]</b> от <b>$date</b> г. Поставщик: <b>$arr_partner[partner_name]</b></p>";
+            $query = "SELECT wholesale.id as wholesale_id, wholesale.ttn_id, wholesale.good_id, wholesale.measure_unit, wholesale.number, wholesale.price, wholesale.vat_rate, wholesale.cargo_spaces_number, wholesale.cargo_weight, wholesale.note, catalog.id as catalog_id, catalog.good_name FROM wholesale LEFT JOIN catalog ON catalog.id=wholesale.good_id WHERE wholesale.ttn_id='$_GET[id]'";
+            $obj_goods = mysqli_query($link,$query) or die(mysqli_error($link));
+            for($goods=[];$row=mysqli_fetch_assoc($obj_goods);$goods[]=$row);
+            $result .= "<form class='mx-4' method='POST' action=''><table class='ttn_goods_list'>";
+            $result .= "<tr><td class='first'>Наименование товара</td><td class='second'>Ед. изм.</td><td class='third'>Кол-во</td><td class='fourth'>Цена, руб.</td><td class='fifth'>Стоимость, руб.</td><td class='sixth'>Ставка НДС, %</td><td class='seventh'>Сумма НДС, руб.</td><td class='eighth'>Стоимость с НДС, руб.</td><td class='ninth'>Кол-во грузовых мест</td><td class='tenth'>Масса груза</td><td class='eleventh'>Примечание</td><td class='twelfth'>Действие</td></tr>
+                            <tr><td class='first'>1*</td><td class='second'>2*</td><td class='third'>3*</td><td class='fourth'>4*</td><td class='fifth'>5</td><td class='sixth'>6*</td><td class='seventh'>7</td><td class='eighth'>8</td><td class='ninth'>9</td><td class='tenth'>10</td><td class='eleventh'>11</td><td class='twelfth'>12</td></tr>";
+            if(!empty($goods)){
+                foreach($goods as $item){
+                    $result .= "<tr><td class='first' style='text-align: left;'>$item[good_name]</td><td class='second'>$item[measure_unit]</td><td class='third'>$item[number]</td><td class='fourth'>$item[price]</td><td class='fifth'>".$item['number']*$item['price']."</td><td class='sixth'>$item[vat_rate]</td><td class='seventh'>".round((($item['vat_rate']*$item['number']*$item['price'])/100),2)."</td>
+                                <td class='eighth'>".round(($item['number']*$item['price'])+(($item['vat_rate']*$item['number']*$item['price'])/100),2)."</td><td class='ninth'>$item[cargo_spaces_number]</td><td class='tenth'>$item[cargo_weight]</td><td class='eleventh'>$item[note]</td><td class='twelfth'><input type='submit' name='delete_good_from_wholesale$item[wholesale_id]' value='Удалить'><input type='hidden' name='wholesale_ttn_id' value='$_GET[id]'></td></tr>";
+                }
+            }
+            $result .= "<tr><td class='first' style='text-align: left;'>".$this->goodList()."<input type='hidden' name='ttn_id' value='$_GET[id]'></td><td class='second'><input type='text' name='measure_unit' value=''></td><td class='third'><input type='text' name='number' value=''></td><td class='fourth'><input type='text' name='price' value=''></td>
+                        <td class='fifth'></td><td class='sixth'><select name='vat_rate'><option value='20'>20</option><option value='10'>10</option><option value='25'>25</option></select></td><td class='seventh'></td><td class='eighth'></td><td class='ninth'><input type='text' name='cargo_spaces_number' value=''></td><td class='tenth'><input type='text' name='cargo_weight' value=''></td><td class='eleventh'><input type='text' name='note' value=''></td><td class='twelfth'><input type='submit' name='add_wholesale_good' value='Сохранить'></td></tr>";
+            $result .= "</table><br><input type='submit' name='add_receipt_good' value='Сохранить последнюю строку'>&nbsp;&nbsp;&nbsp;<a style='color: black;' href='/sales'>Выход</a></form>";
+        }
+        else $result = "";
+        return $result;
+    }
+
+    public function deleteGoodFromWholesale(){
+        if(isset($_POST['wholesale_ttn_id'])){
+            require 'project/config/connection.php';
+            $query = "SELECT id FROM good_wholesale WHERE ttn_id='$_POST[ttn_id]'";
+            $obj_goods = mysqli_query($link,$query) or die(mysqli_error($link));
+            for($arr_goods=[];$row=mysqli_fetch_assoc($obj_goods);$arr_goods[]=$row);
+            if(!empty($arr_goods)){
+                foreach ($arr_goods as $item){
+                    if(isset($_POST['delete_good_from_wholesale'.$item['id']])){
+                        $query = "DELETE FROM good_wholesale WHERE id='$item[id]'";
+                        mysqli_query($link,$query) or die(mysqli_error($link));
+                        header("Location: /storage/wholesale?id=$_POST[ttn_id]");
+                    }
+                }
+            }
+        }
+        else return "";
+    }
+
+    public function wholesale(){
+        if(isset($_POST['add_wholesale_good'])){
+            $message = "";
+            if($_POST['good_id']!=0&&$_POST['measure_unit']!=''&&$_POST['number']!=''&&$_POST['price']!=''&&$_POST['vat_rate']!=''){
+                if(preg_match('#,#',$_POST['price'])!=1){
+                    require 'project/config/connection.php';
+                    $query = "INSERT INTO wholesale SET ttn_id='$_POST[ttn_id]', good_id='$_POST[good_id]', measure_unit='$_POST[measure_unit]', number='$_POST[number]', price='$_POST[price]', 
+                vat_rate='$_POST[vat_rate]', cargo_spaces_number='$_POST[cargo_spaces_number]', cargo_weight='$_POST[cargo_weight]', note='$_POST[note]'";
+                    mysqli_query($link,$query) or die(mysqli_error($link));
+                    header("Location: /sales/wholesale?id=$_GET[id]");
+                }
+                else $message = "<p>Используйте символ 'точка' в качестве разделителя целой и дробной части в поле 'ЦЕНА'</p>";
+            }
+            else $message .= "<p>Заполните все поля, отмеченные звёздочками</p>";
+            echo $message;
+        }
+        else return "";
     }
 }

@@ -4,7 +4,6 @@ class Storage extends Page
 {
     public function ttnRequisites(){
         $result = "";
-        if(!isset($_POST['add_incoming_voices'])){
             $result .= "<form class='mx-4' method='POST'  action=''>
                         <p class='mx-0'>Реквизиты товарно-транспортной накладной</p>
                         <div class='row my-3 mx-1 p-2' style='border: 1px solid #363434; border-radius: 3px;'>
@@ -35,10 +34,15 @@ class Storage extends Page
                                 <label>Принял грузополучатель  (должность, ФИО, подпись)*:<br><input type='text' name='accepted' size='50' value='".$this->echoAccepted('')."'></label><br><br>
                                 <label>Номер пломбы:&nbsp;<input type='text' name='accepted_seal_number' size='30' value='".$this->echoAcceptedSealNumber('')."'></label><br><br>
                             </div>
-                        </div>
-                        <input type='submit' name='add_incoming_invoices' value='Перейти к заполнению товара'>&nbsp;&nbsp;&nbsp;<a style='color: black;' href=''/storage'>Очистить форму</a>
+                        </div>";
+            if($_SERVER['REQUEST_URI'] == '/storage/receipt-good') {
+                $result .= "<input type='submit' name='add_incoming_invoices' value='Перейти к заполнению товара'>&nbsp;&nbsp;&nbsp;<a style='color: black;' href=''/storage/receipt-good'>Очистить форму</a>
                     </form>";
-        }
+            }
+            if($_SERVER['REQUEST_URI'] == '/sales/wholesale') {
+                $result .= "<input type='submit' name='add_outcoming_invoices' value='Перейти к заполнению товара'>&nbsp;&nbsp;&nbsp;<a style='color: black;' href=''/sales/wholesale'>Очистить форму</a>
+                    </form>";
+            }
         return $result;
     }
 
@@ -81,7 +85,6 @@ class Storage extends Page
             }
             else $message = "<p>Заполните все поля, отмеченные звёздочками</p>";
             echo $message;
-            $_SESSION['add_incoming_invoices']=$message;
         }
         else return "";
     }
@@ -159,7 +162,14 @@ class Storage extends Page
     }
 
     public function findSupplier(){
-        $result = "<label>Выбор поставщика. Полностью или частично введите наименование поставщика и нажмите ПОИСК*:<br><input type='text' name='find_supplier' value='".$this->echoFindSupplier('')."' size='30'>&nbsp;&nbsp;&nbsp;
+        $result = "";
+        if($_SERVER['REQUEST_URI'] == "/sales/wholesale"){
+            $result .= "<label>Выбор покупателя. Полностью или частично введите наименование покупателя и нажмите ПОИСК*:";
+        }
+        if($_SERVER['REQUEST_URI'] == "/storage/receipt-good"){
+            $result .= "<label>Выбор поставщика. Полностью или частично введите наименование поставщика и нажмите ПОИСК*:";
+        }
+        $result .= "<br><input type='text' name='find_supplier' value='".$this->echoFindSupplier('')."' size='30'>&nbsp;&nbsp;&nbsp;
             <input type='submit' name='show_supplier_list' value='Поиск'></label>";
         if(isset($_POST['show_supplier_list'])){
             $result .= $this->supplierList();
@@ -612,14 +622,24 @@ class Storage extends Page
         if(isset($_POST['loading_point'])){
             return $_POST['loading_point'];
         }
-        else return $var;
+        else{
+            if($_SERVER['REQUEST_URI'] == '/sales/wholesale'){
+                return "Витебская обл., г. Полоцк, ул. Мариненко, 40-6";
+            }
+            else return $var;
+        }
     }
 
     public function echoUnloadingPoint($var){
         if(isset($_POST['unloading_point'])){
             return $_POST['unloading_point'];
         }
-        else return "Витебская обл., г. Полоцк, ул. Мариненко, 40-6";
+        else{
+            if($_SERVER['REQUEST_URI'] == '/storage/receipt-good'){
+                return "Витебская обл., г. Полоцк, ул. Мариненко, 40-6";
+            }
+            else return $var;
+        }
     }
 
     public function echoReaddressing($var){

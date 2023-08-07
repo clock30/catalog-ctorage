@@ -307,6 +307,27 @@ if(preg_match('#^/sales/edit-refund$#',$url,$matches)){
     echo $layout;
 }
 
+if(preg_match('#^/sales/wholesale$#',$url,$matches)){
+    $wholesale = new Sales;
+    $layout = file_get_contents('project/layouts/wholesale.tpl');
+    $layout = str_replace('{{header}}',$wholesale->header(),$layout);
+    $layout = str_replace('{{footer}}',$wholesale->footer(),$layout);
+    $layout = str_replace('{{ttnRequisites}}',$wholesale->ttnRequisites(),$layout);
+    $wholesale->addOutcomingInvoices();
+    echo $layout;
+}
+
+if(preg_match('#^/sales/wholesale\?id=[0-9]+$#',$url,$matches)){
+    $wholesale = new Sales;
+    $layout = file_get_contents('project/layouts/wholesale_form.tpl');
+    $layout = str_replace('{{header}}',$wholesale->header(),$layout);
+    $layout = str_replace('{{footer}}',$wholesale->footer(),$layout);
+    $layout = str_replace('{{wholesaleForm}}',$wholesale->wholesaleForm(),$layout);
+    $wholesale->wholesale();
+    $wholesale->deleteGoodFromWholesale();
+    echo $layout;
+}
+
 if(preg_match('#^/partners$#',$url,$matches)){
     $partners = new Partners;
     $layout = file_get_contents('project/layouts/partners.tpl');
